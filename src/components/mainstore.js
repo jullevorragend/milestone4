@@ -25,38 +25,37 @@ class MainstoreSingleton {
 
 	compareTwoAndGiveAnswerString = (person1, person2) => {
 		if (
-			(person1.dateOfBirth !== person2.dateOfBirth) &&
-			this.isCoronaFree(person1) &&
-			this.isCoronaFree(person2) &&
-			(person1.prioritized === person2.prioritized)
+			person1.dateOfBirth !== person2.dateOfBirth &&
+			this.isCoronaFree(person1) === this.isCoronaFree(person2) &&
+			person1.prioritized === person2.prioritized
 		) {
 			const personSort = {
 				olderPerson:
 					person1.dateOfBirth < person2.dateOfBirth
 						? person1
 						: person2,
-				olderBy:
-					person1.dateOfBirth < person2.dateOfBirth
-						? person1.dateOfBirth - person2.dateOfBirth
-						: person2.dateOfBirth - person1.dateOfBirth,
 				youngerPerson:
 					person1.dateOfBirth < person2.dateOfBirth
 						? person2
 						: person1,
 			};
 			if (
-				personSort.youngerPerson-this.calculateSicknessPoints(personSort.youngerPerson) <
-				personSort.olderPerson-this.calculateSicknessPoints(personSort.olderPerson)
+				personSort.youngerPerson -
+					this.calculateSicknessPoints(personSort.youngerPerson) <
+				personSort.olderPerson -
+					this.calculateSicknessPoints(personSort.olderPerson)
 			) {
 				//TODO ausgabe: jüngere person viel kränker deshalb ausgeählt
-			}else{
+			} else {
 				//TODO Ausgabe: ältere Person älter deshalb ausgewählt
 			}
-		}else if((!this.isCoronaFree(person1) !== !this.isCoronaFree(person2))){
+		} else if (
+			!this.isCoronaFree(person1) !== !this.isCoronaFree(person2)
+		) {
 			//TODO Ausgabe: Coronafreie Person coronafrei deshalb ausgewählt
-		}else if((person1.prioritized !== person2.prioritized)){
+		} else if (person1.prioritized !== person2.prioritized) {
 			//TODO Ausgabe : Priorisierte person priorisiert deshalb ausgewählt
-		}else{
+		} else {
 			//TODO Ausgabe : Die personen müssen zwillinge sein deshalb per zufall Person1 ausgewählt
 		}
 	};
