@@ -8,14 +8,7 @@ class MainstoreSingleton {
 	init = () => {
 		this.userDataSet = this.loadUserData();
 	};
-	sortUsersByPriority = () => {
-		this.userDataSet = this.userDataSet.sort(
-			(a, b) =>
-				b.dateOfBirth +
-				(b.prioritized ? 10000000000 : 0) -
-				(a.dateOfBirth + (a.prioritized ? 10000000000 : 0))
-		);
-	};
+
 	calculateSicknessPoints = (person) => {
 		return person.patientStory.length * 1000;
 	};
@@ -23,11 +16,75 @@ class MainstoreSingleton {
 		return !(person.coronaInfection || person.previousCoronaInfection);
 	};
 
+	calculateAge = (timestamp) => {
+		const age = new Date().getFullYear - new Date(timestamp).getFullYear; //TODO
+		return age;
+	};
+
+	categorize = (person) => {
+		if (
+			person.fragebogen.bewohner_von_seniorenheim ||
+			this.calculateAge(person.dateOfBirth) >= 80 ||
+			(person.fragebogen.personal_in_medizinischer_einrichtung &&
+				person.fragebogen.expositionsrisiko > 2) ||
+			(person.fragebogen.personal_in_medizinischer_einrichtung &&
+				person.fragebogen.enger_kontakt_zu_personen_mit_hohem_risiko) ||
+			person.fragebogen.pflegepersonal_in_altenpflege ||
+			person.fragebogen.kontakt_zu_bewohner_in_seniorenheim
+		) {
+			return 1;
+		} else if (
+			this.calculateAge(person.dateOfBirth) >= 75 ||
+			(person.fragebogen.personal_in_medizinischer_einrichtung &&
+				person.fragebogen.expositionsrisiko > 1) ||
+			person.fragebogen.geistige_behinderung ||
+			person.fragebogen.versorgung_personen_geistige_behinderung ||
+			person.fragebogen.down_syndrom
+		) {
+			return 2;
+		} else if (
+			this.calculateAge(person.dateOfBirth) >= 70 ||
+			person.fragebogen.organtransplantation ||
+			person.fragebogen.vorerkrankung_risiko > 2 ||
+			person.fragebogen.bewohner_tätig_in_gemeinschaftsunterkunft ||
+			person.fragebogen.enger_kontakt_zu_schwangeren ||
+			person.fragebogen.enger_kontakt_zu_personen_mit_hohem_risiko ||
+			((person.fragebogen.personal_in_medizinischer_einrichtung ||
+				person.fragebogen
+					.personal_für_aufrechterhaltung_Krankenhausinfrastruktur) &&
+				person.fragebogen.expositionsrisiko > 1) ||
+			person.fragebogen.teilbereich_ögd
+		) {
+			return 3;
+		} else if (
+			this.calculateAge(person.dateOfBirth) >= 65 ||
+			person.fragebogen.vorerkrankung_risiko > 1 ||
+			(person.fragebogen.personal_in_medizinischer_einrichtung &&
+				person.fragebogen.expositionsrisiko > 0) ||
+			person.fragebogen.lehrer_erzieher ||
+			person.fragebogen.prekäre_bedingungen
+		) {
+			return 4;
+		} else if (
+			this.calculateAge(person.dateOfBirth) >= 60 ||
+			person.fragebogen.schlüsselpositionen_der_landes_bundesregierung ||
+			person.fragebogen.beschäftigte_einzelhandel ||
+			(person.fragebogen
+				.personen_zur_aufrechterhaltung_der_öffentlichen_Sicherheit &&
+				person.fragebogen.expositionsrisiko > 0) ||
+			person.fragebogen.berufe_der_kritischen_infrastruktur
+		) {
+			return 5;
+		} else {
+			return 6;
+		}
+	};
+
 	compareTwoAndGiveAnswerString = (person1, person2) => {
 		if (
 			person1.dateOfBirth !== person2.dateOfBirth &&
 			this.isCoronaFree(person1) === this.isCoronaFree(person2) &&
-			person1.prioritized === person2.prioritized
+			this.categorize(person1) === this.categorize(person2)
 		) {
 			const personSort = {
 				olderPerson:
@@ -45,60 +102,42 @@ class MainstoreSingleton {
 				personSort.olderPerson -
 					this.calculateSicknessPoints(personSort.olderPerson)
 			) {
-				//TODO ausgabe: jüngere person viel kränker deshalb ausgeählt
+				return {
+					person: personSort.youngerPerson,
+					reason: `Da beide Personen die selbe Gefährdungsstufe haben wurde nach Alter und Krankengeschichte ausgewählt und Obwohl ${personSort.olderPerson.name} das höhere Alter besitzt wurde ${personSort.youngerPerson.name} aufgrund der Krankengeschichte bevorzugt.`,
+				};
 			} else {
-				//TODO Ausgabe: ältere Person älter deshalb ausgewählt
+				return {
+					person: personSort.youngerPerson,
+					reason: `Da beide Personen die selbe Gefährdungsstufe haben wurde ${personSort.olderPerson.name} augrund des höheren Alters gewählt.`,
+				};
 			}
 		} else if (
 			!this.isCoronaFree(person1) !== !this.isCoronaFree(person2)
 		) {
-			//TODO Ausgabe: Coronafreie Person coronafrei deshalb ausgewählt
-		} else if (person1.prioritized !== person2.prioritized) {
-			//TODO Ausgabe : Priorisierte person priorisiert deshalb ausgewählt
+			const chosenPerson = this.isCoronaFree(person1) ? person1 : person2;
+			const notChosenPerson = this.isCoronaFree(person1)
+				? person2
+				: person1;
+			return {
+				person: chosenPerson,
+				reason: `Aufgrund einer vorangegangenen oder aktuellen Coviderkrankung von ${notChosenPerson.name} wurde ${chosenPerson.name} ausgewählt`,
+			};
 		} else {
-			//TODO Ausgabe : Die personen müssen zwillinge sein deshalb per zufall Person1 ausgewählt
+			const chosenPerson =
+				this.categorize(person1) > this.categorize(person2)
+					? person1
+					: person2;
+			return {
+				person: chosenPerson,
+				reason: `${chosenPerson.name} wurde aufgrund der höheren Gefährdungsstufe ausgewählt `,
+			};
 		}
 	};
 
 	loadUserData = () => {
 		//Request Here
-		const userDataResult = [
-			{
-				userId: 21345,
-				dateOfBirth: -303684000,
-				prioritized: true,
-				extendedDataId: 1,
-				name: "Kevin",
-			},
-			{
-				userId: 21545,
-				dateOfBirth: -303680000,
-				prioritized: false,
-				extendedDataId: 2,
-				name: "Kurt",
-			},
-			{
-				userId: 21555,
-				dateOfBirth: -303284000,
-				prioritized: true,
-				extendedDataId: 3,
-				name: "Karen",
-			},
-			{
-				userId: 21445,
-				dateOfBirth: -303288000,
-				prioritized: true,
-				extendedDataId: 4,
-				name: "Kenobi",
-			},
-			{
-				userId: 21447,
-				dateOfBirth: -303218000,
-				prioritized: false,
-				extendedDataId: 5,
-				name: "Leroy",
-			},
-		];
+		const userDataResult = [];
 		const userData = userDataResult.map(
 			(data) =>
 				(data = {
@@ -109,32 +148,8 @@ class MainstoreSingleton {
 		return userData;
 	};
 	loadExtendedUserData = (extendedDataId) => {
-		const extendedData = [
-			{
-				id: 1,
-				patientStory: ["halbes hirn fehlt", "lungenkrebs"],
-				coronaInfection: false,
-				previousCoronaInfection: false,
-			},
-			{
-				id: 2,
-				patientStory: [],
-				coronaInfection: false,
-				previousCoronaInfection: false,
-			},
-			{
-				id: 3,
-				patientStory: [],
-				coronaInfection: true,
-				previousCoronaInfection: false,
-			},
-			{
-				id: 3,
-				patientStory: [],
-				coronaInfection: true,
-				previousCoronaInfection: true,
-			},
-		];
+		//TODO Requesr
+		const extendedData = [];
 		return extendedData.find((dataitem) => dataitem.id === extendedDataId);
 	};
 }
