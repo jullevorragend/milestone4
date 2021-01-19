@@ -1,64 +1,41 @@
-import { makeStyles } from "@material-ui/core/styles";
-import {
-	Button,
-	Paper,
-	Table,
-	TableBody,
-	TableCell,
-	TableContainer,
-	TableHead,
-	TableRow,
-} from "@material-ui/core";
+import { Menu, Row, Col } from "antd";
 import { observer } from "mobx-react";
 import React, { useEffect } from "react";
 import { MainStore } from "./mainstore";
+import "antd/dist/antd.css";
+import { AddPerson } from "./addPerson";
+import { Liste } from "./liste";
 
-const useStyles = makeStyles({
-	root: {
-		background: "linear-gradient(45deg, #FE6B8B 30%, #FF8E53 90%)",
-		border: 0,
-		borderRadius: 3,
-		boxShadow: "0 3px 5px 2px rgba(255, 105, 135, .3)",
-		color: "white",
-		height: 48,
-		padding: "0 30px",
-	},
-	table: {
-		backgroundColor: "rgba(200,200,210,1)",
-	},
-});
 export const Main = observer(() => {
-	const classes = useStyles();
 	const Store = MainStore;
 	useEffect(() => {
 		Store.init();
 	}, []);
 
 	return (
-		<div>
-			<TableContainer component={Paper}>
-				<Table className={classes.table} aria-label="simple table">
-					<TableHead>
-						<TableRow>
-							<TableCell>Name</TableCell>
-							<TableCell>Alter</TableCell>
-						</TableRow>
-					</TableHead>
-					<TableBody>
-						{Store.userDataSet.map((user) => (
-							<TableRow key={user.userId}>
-								<TableCell component="th" scope="row">
-									{user.name}
-								</TableCell>
-								<TableCell>{user.dateOfBirth}</TableCell>
-							</TableRow>
-						))}
-					</TableBody>
-				</Table>
-			</TableContainer>
-			<Button onClick={() => Store.sortUsersByPriority()}>
-				Sortieren
-			</Button>
-		</div>
+		<Row style={{ height: "100%" }}>
+			<Col style={{ height: "100%" }} span={4}>
+				<Menu theme="dark" mode="inline" style={{ height: "100%" }}>
+					<Menu.Item onClick={() => (Store.currentPage = "list")}>
+						Liste der Impfwilligen
+					</Menu.Item>
+					<Menu.Item onClick={() => (Store.currentPage = "add")}>
+						Impfwilligen Hinzufügen
+					</Menu.Item>
+					<Menu.Item>Impfwillige vergleichen</Menu.Item>
+				</Menu>
+			</Col>
+			{Store.currentPage === "def" ? (
+				<Col>
+					<div>Content</div>
+				</Col>
+			) : Store.currentPage === "add" ? (
+				<AddPerson></AddPerson>
+			) : Store.currentPage === "list" ? (
+				<Liste></Liste>
+			) : (
+				<Col>Hiersnix</Col>
+			)}
+		</Row>
 	);
 });

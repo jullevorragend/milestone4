@@ -4,6 +4,7 @@ class MainstoreSingleton {
 	constructor() {
 		makeAutoObservable(this);
 	}
+	currentPage = "def";
 	userDataSet = [];
 	init = () => {
 		this.userDataSet = this.loadUserData();
