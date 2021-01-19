@@ -13,6 +13,11 @@ class MainstoreSingleton {
 		this.userDataSet = this.loadUserData();
 	};
 
+	update = () => {
+		const save = this.currentPage;
+		this.currentPage = "def";
+		this.currentPage = save;
+	};
 	calculateSicknessPoints = (person) => {
 		return person.patientStory.length * 1000;
 	};

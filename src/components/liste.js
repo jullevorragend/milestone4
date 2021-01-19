@@ -55,6 +55,21 @@ export const Liste = observer(() => {
 							);
 						},
 					},
+					{
+						title: "Löschen",
+						render: (value, record, index) => {
+							return (
+								<Button
+									onClick={() => {
+										Store.userDataSet.splice(index, 1);
+										Store.update();
+									}}
+								>
+									Löschen
+								</Button>
+							);
+						},
+					},
 				]}
 			></Table>
 		</Card>

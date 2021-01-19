@@ -21,9 +21,9 @@ export const AddPerson = observer(() => {
 	const onFinish = (values) => {
 		const newUser = values;
 		newUser.dateOfBirth = newUser.dateOfBirth.unix();
-		console.log(newUser.dateOfBirth);
 		newUser.categorization = Store.categorize(newUser);
 		Store.userDataSet.push(newUser);
+		Store.currentPage = "list";
 	};
 	return (
 		<Col span={18}>
@@ -33,6 +33,7 @@ export const AddPerson = observer(() => {
 						label="name"
 						name="name"
 						rules={[{ required: true }]}
+						initialValue={undefined}
 					>
 						<Input />
 					</Form.Item>
@@ -40,6 +41,7 @@ export const AddPerson = observer(() => {
 						label="Geburtstag"
 						name="dateOfBirth"
 						rules={[{ required: true }]}
+						initialValue={undefined}
 					>
 						<DatePicker></DatePicker>
 					</Form.Item>
