@@ -1,3 +1,4 @@
+import axios from "axios";
 import { makeAutoObservable } from "mobx";
 
 class MainstoreSingleton {
@@ -5,26 +6,29 @@ class MainstoreSingleton {
 		makeAutoObservable(this);
 	}
 	currentPage = "def";
-	userDataSet = [];
-	currentUserData = {};
-	currentCompareData = [];
+	userDataSet = []; //Ein Array in dem alle Userdaten gespeichert werden
+	currentUserData = {}; //der aktuell ausgewählte benutzer
+	currentCompareData = []; // Hier werden die zu vergleichenden Impfwilligen Gespeichert
 
+	//lädt zu beginn die Nutzerdaten aus der Datenbank
 	init = () => {
 		this.userDataSet = this.loadUserData();
 	};
 
+	//berechnet die zusätzlichen Sekunden die auf das Alter aufaddiert werden um sehr Kranke Menschen vorzuziehen
 	calculateSicknessPoints = (person) => {
 		return person.patientStory.length * 1000;
 	};
+	//Checkt ob eine CoronaInfektion vorlag oder liegt
 	isCoronaFree = (person) => {
 		return !(person.coronaInfection || person.previousCoronaInfection);
 	};
-
+	//Da das Geburtsdatum als unix TimeStamp vorliegt wird hier der timestamp in das Alter umgerechnet
 	calculateAge = (timestamp) => {
 		const age = new Date().getFullYear - new Date(timestamp).getFullYear; //TODO
 		return age;
 	};
-
+	//Ordnet Person nach den fragebogenDaten in eine Kategorie ein
 	categorize = (person) => {
 		if (
 			person.fragebogen.bewohner_von_seniorenheim ||
@@ -83,13 +87,16 @@ class MainstoreSingleton {
 			return 6;
 		}
 	};
-
+	//Vergleicht 2 Impfwillige basierend auf Kategorie, Alter und Vorangegangener bzw. bestehender CoronaInfektion
+	//Die Rückgabe ist ein Objekt mit der Begründung als String und dem Objekt der Person die Vorgezogen wurde
 	compareTwoAndGiveAnswerString = (person1, person2) => {
+		//Für den Fall dass beide Impfwilligen in der Selben Kategorie sind wird hier der Vorzug nach Alter Berechnet
 		if (
 			person1.dateOfBirth !== person2.dateOfBirth &&
 			this.isCoronaFree(person1) === this.isCoronaFree(person2) &&
 			this.categorize(person1) === this.categorize(person2)
 		) {
+			//Temporäres Objekt, in dem die zu vergleichenden Personen als Jüngere, und Ältere Person vorliegen um Spätere referenzierung zu Vereinfachen
 			const personSort = {
 				olderPerson:
 					person1.dateOfBirth < person2.dateOfBirth
@@ -100,6 +107,7 @@ class MainstoreSingleton {
 						? person2
 						: person1,
 			};
+			//Eine sehr kranke Person kann trotz geringerem Alter vorgezogen werden. Dazu werden die Vorbelastungen in Sekunden umgerechnet, welche auf das Alter aufaddiert werden, der Schlüssel zur Umrechnung wird sich später aus einer Tabelle in der Datenbank ergeben
 			if (
 				personSort.youngerPerson -
 					this.calculateSicknessPoints(personSort.youngerPerson) <
@@ -107,16 +115,19 @@ class MainstoreSingleton {
 					this.calculateSicknessPoints(personSort.olderPerson)
 			) {
 				return {
+					//Ausgabe für den Fall dass die jüngere Person vorgezogen wird
 					person: personSort.youngerPerson,
 					reason: `Da beide Personen die selbe Gefährdungsstufe haben wurde nach Alter und Krankengeschichte ausgewählt und Obwohl ${personSort.olderPerson.name} das höhere Alter besitzt wurde ${personSort.youngerPerson.name} aufgrund der Krankengeschichte bevorzugt.`,
 				};
 			} else {
 				return {
+					//Ausgabe für den Standardfall dass die Ältere Person vorgezogen wird
 					person: personSort.youngerPerson,
 					reason: `Da beide Personen die selbe Gefährdungsstufe haben wurde ${personSort.olderPerson.name} augrund des höheren Alters gewählt.`,
 				};
 			}
 		} else if (
+			//Sollte der Fall auftreten, dass eine Person eine CoronaInfektion hat wird hier die andere vorgezogen
 			!this.isCoronaFree(person1) !== !this.isCoronaFree(person2)
 		) {
 			const chosenPerson = this.isCoronaFree(person1) ? person1 : person2;
@@ -128,8 +139,9 @@ class MainstoreSingleton {
 				reason: `Aufgrund einer vorangegangenen oder aktuellen Coviderkrankung von ${notChosenPerson.name} wurde ${chosenPerson.name} ausgewählt`,
 			};
 		} else {
+			//Trifft keiner der obigen Fälle zu, wird hier die Person mit der höheren Einstufung Ausgewählt.
 			const chosenPerson =
-				this.categorize(person1) > this.categorize(person2)
+				this.categorize(person1) < this.categorize(person2)
 					? person1
 					: person2;
 			return {
@@ -139,22 +151,28 @@ class MainstoreSingleton {
 		}
 	};
 
-	loadUserData = () => {
-		//Request Here
-		const userDataResult = [];
-		const userData = userDataResult.map(
-			(data) =>
+	loadUserData = async () => {
+		//request auf die Tabelle der Impfwilligen, welche die basisdaten enthält
+		const result = await axios.get("impfwillige.php");
+		//Hier werden die für die Kategorisierung nötigen Daten für jede Person anhand der FragebogenId nachgeladen und an das Objekt angehängt
+		const userData = result.map(
+			async (data) =>
 				(data = {
 					...data,
-					...this.loadExtendedUserData(data.extendedDataId),
+					fragebogen: await this.loadExtendedUserData(
+						data.extendedDataId
+					),
 				})
 		);
 		return userData;
 	};
-	loadExtendedUserData = (extendedDataId) => {
-		//TODO Requesr
-		const extendedData = [];
-		return extendedData.find((dataitem) => dataitem.id === extendedDataId);
+	//lädt die fragebogendaten anhand der FragebogenId und gibt diese zurück
+	loadExtendedUserData = async (extendedDataId) => {
+		const result = await axios.get(
+			"fragebogen.php?fragebogenid=" + extendedDataId
+		);
+
+		return result.data;
 	};
 }
 export const MainStore = new MainstoreSingleton();
