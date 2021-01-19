@@ -6,6 +6,9 @@ class MainstoreSingleton {
 	}
 	currentPage = "def";
 	userDataSet = [];
+	currentUserData = {};
+	currentCompareData = [];
+
 	init = () => {
 		this.userDataSet = this.loadUserData();
 	};

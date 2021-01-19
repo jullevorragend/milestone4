@@ -5,6 +5,7 @@ import { MainStore } from "./mainstore";
 import "antd/dist/antd.css";
 import { AddPerson } from "./addPerson";
 import { Liste } from "./liste";
+import { Compare } from "./compare";
 
 export const Main = observer(() => {
 	const Store = MainStore;
@@ -22,7 +23,8 @@ export const Main = observer(() => {
 					<Menu.Item onClick={() => (Store.currentPage = "add")}>
 						Impfwilligen Hinzufügen
 					</Menu.Item>
-					<Menu.Item>Impfwillige vergleichen</Menu.Item>
+					<Menu.Item onClick={() => (Store.currentPage = "compare")}>Impfwillige vergleichen</Menu.Item>
+					<div style={{ height: "100%" }}></div>
 				</Menu>
 			</Col>
 			{Store.currentPage === "def" ? (
@@ -33,6 +35,8 @@ export const Main = observer(() => {
 				<AddPerson></AddPerson>
 			) : Store.currentPage === "list" ? (
 				<Liste></Liste>
+			) : Store.currentPage === "compare" ? (
+				<Compare></Compare>
 			) : (
 				<Col>Hiersnix</Col>
 			)}

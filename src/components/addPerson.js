@@ -19,8 +19,11 @@ export const AddPerson = observer(() => {
 		wrapperCol: { span: 16 },
 	};
 	const onFinish = (values) => {
-		Store.userDataSet.push(values);
-		console.log(Store.userDataSet);
+		const newUser = values;
+		newUser.dateOfBirth = newUser.dateOfBirth.unix();
+		console.log(newUser.dateOfBirth);
+		newUser.categorization = Store.categorize(newUser);
+		Store.userDataSet.push(newUser);
 	};
 	return (
 		<Col span={18}>
